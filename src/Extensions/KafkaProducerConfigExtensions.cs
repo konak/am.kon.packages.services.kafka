@@ -25,7 +25,7 @@ namespace am.kon.packages.services.kafka.Extensions
                 RequestTimeoutMs = kafkaProducerConfig.RequestTimeoutMs,
                 SocketTimeoutMs = kafkaProducerConfig.SocketTimeoutMs,
                 SocketKeepaliveEnable = kafkaProducerConfig.SocketKeepaliveEnable,
-                CompressionType = Enum.Parse<CompressionType>(kafkaProducerConfig.CompressionType),
+                CompressionType = (CompressionType)Enum.Parse(typeof(CompressionType), kafkaProducerConfig.CompressionType, true),
                 CompressionLevel = kafkaProducerConfig.CompressionLevel//,
             };
         }

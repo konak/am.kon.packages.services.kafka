@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 25.0.1704.2
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "am.kon.packages.services.kafka", "am.kon.packages.services.kafka.csproj", "{479BC401-556B-4F37-94D7-B2F03CA7C3D1}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{23EFA5E4-F71A-42AE-9150-1CBACC4F9519}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "am.kon.packages.services.kafka", "src\am.kon.packages.services.kafka.csproj", "{F838B919-D6E9-42ED-8DA4-C356792E21B0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +13,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{479BC401-556B-4F37-94D7-B2F03CA7C3D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{479BC401-556B-4F37-94D7-B2F03CA7C3D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{479BC401-556B-4F37-94D7-B2F03CA7C3D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{479BC401-556B-4F37-94D7-B2F03CA7C3D1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {942E1E50-5BBA-4D6D-899A-F54F4AC831A9}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0} = {23EFA5E4-F71A-42AE-9150-1CBACC4F9519}
 	EndGlobalSection
 EndGlobal
