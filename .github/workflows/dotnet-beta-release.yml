@@ -32,6 +32,4 @@ jobs:
       env:
         api_secret: ${{ secrets.NUGET_PUBLISH_SECRET }}
       run: |
-        ls ./packages/
-        echo -----------
-        dotnet nuget push /home/runner/work/am.kon.packages.services.kafka/am.kon.packages.services.kafka/packages/am.kon.packages.services.kafka.*.nupkg --api-key "$api_secret" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        dotnet nuget push ./packages/am.kon.packages.services.kafka.*.nupkg --api-key "$api_secret" --source https://api.nuget.org/v3/index.json --skip-duplicate
