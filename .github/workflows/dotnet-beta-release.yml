@@ -23,7 +23,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore --configuration Release
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Pack
@@ -32,4 +32,6 @@ jobs:
       env:
         api_secret: ${{ secrets.NUGET_PUBLISH_SECRET }}
       run: |
+        ls ~/
+        ls ./packages/
         dotnet nuget push /home/runner/work/am.kon.packages.services.kafka/am.kon.packages.services.kafka/packages/am.kon.packages.services.kafka.*.nupkg --api-key "$api_secret" --source https://api.nuget.org/v3/index.json --skip-duplicate
