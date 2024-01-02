@@ -111,7 +111,7 @@ namespace am.kon.packages.services.kafka
         /// Background async task producing data to Kafka server
         /// </summary>
         /// <returns></returns>
-        private async Task ProduceQueueToKafka()
+        private async Task ProduceQueueToKafka(Func<KafkaDataProducerMessage<TKey, TValue>, DeliveryResult<TKey, TValue>, Task> onProduceReport = null, Func<KafkaDataProducerMessage<TKey, TValue>, Exception, Task> onProduceException = null)
         {
             try
             {
@@ -123,15 +123,15 @@ namespace am.kon.packages.services.kafka
                     {
                         DeliveryResult<TKey, TValue> deliveryReport = await _producer.ProduceAsync(message.TopicName, message.ToMessage(), _cancellationToken);
 
-                        if (!_cancellationToken.IsCancellationRequested && deliveryReport.Status == PersistenceStatus.NotPersisted)
-                        {
-                            // Implement logic for not delivered requests
-                        }
+                        if (!_cancellationToken.IsCancellationRequested && onProduceReport != null)
+                            await onProduceReport(message, deliveryReport);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Unhandled exception on message delivery to kafka.");
-                        // Implement logic for not delivered requests
+                        if (onProduceException != null)
+                            await onProduceException(message, ex);
+                        else
+                            _logger.LogError(ex, "Unhandled exception on message delivery to kafka.");
                     }
                 }
             }
