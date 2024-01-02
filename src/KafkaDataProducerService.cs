@@ -129,7 +129,16 @@ namespace am.kon.packages.services.kafka
                     catch (Exception ex)
                     {
                         if (onProduceException != null)
-                            await onProduceException(message, ex);
+                        {
+                            try
+                            {
+                                await onProduceException(message, ex);
+                            }
+                            catch (Exception exx)
+                            {
+                                _logger.LogError(exx, "Unhandled exception on callback of produce exception handler.");
+                            }
+                        }
                         else
                             _logger.LogError(ex, "Unhandled exception on message delivery to kafka.");
                     }
