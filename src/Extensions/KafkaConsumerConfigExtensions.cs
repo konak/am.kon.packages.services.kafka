@@ -1,4 +1,5 @@
 ﻿using System;
+using am.kon.packages.services.kafka.Config;
 using Confluent.Kafka;
 
 namespace am.kon.packages.services.kafka.Extensions
@@ -20,7 +21,8 @@ namespace am.kon.packages.services.kafka.Extensions
                 BootstrapServers = kafkaConsumerConfig.BootstrapServers,
                 MessageMaxBytes = kafkaConsumerConfig.MessageMaxBytes,
                 SocketTimeoutMs = kafkaConsumerConfig.SocketTimeoutMs,
-                GroupId = kafkaConsumerConfig.GroupId
+                GroupId = kafkaConsumerConfig.GroupId,
+                EnableAutoCommit = kafkaConsumerConfig.AutoCommit
             };
 
             return res;

@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
+using am.kon.packages.services.kafka.Config;
 
 namespace am.kon.packages.services.kafka
 {
@@ -32,11 +33,16 @@ namespace am.kon.packages.services.kafka
 
         private readonly KafkaConsumerConfig _kafkaCoonsumerConfig;
 
+        private bool _disposed = false;
+
+        protected readonly Func<Message<TKey, TValue>, Task<bool>> _processMessageAsync;
+
         public KafkaDataConsumerService(
             ILogger<KafkaDataConsumerService<TKey, TValue>> logger,
             IConfiguration configuration,
 
-            IOptions<KafkaConsumerConfig> kafkaConsumerOptions
+            IOptions<KafkaConsumerConfig> kafkaConsumerOptions,
+            Func<Message<TKey, TValue>, Task<bool>> processMessageAsync = null
             )
         {
             _logger = logger;
@@ -49,9 +55,11 @@ namespace am.kon.packages.services.kafka
             _consumerConfig = _kafkaCoonsumerConfig.ToConsumerConfig();
 
             if (_kafkaCoonsumerConfig.MakeGroupUnique)
-                _consumerConfig.GroupId += $"_{DateTime.Now.ToString()}";
+                _consumerConfig.GroupId += $"_{DateTime.Now}";
 
             _consumer = new ConsumerBuilder<TKey, TValue>(_consumerConfig).Build();
+
+            _processMessageAsync = processMessageAsync;
 
             _consumerTimer = new Timer(new TimerCallback(ConsumerTimerHandler), null, Timeout.Infinite, Timeout.Infinite);
             _consumingIsInProgress = 0;
@@ -82,6 +90,7 @@ namespace am.kon.packages.services.kafka
         public Task Stop()
         {
             _cancellationTokenSource.Cancel();
+            _consumerTimer.Change(Timeout.Infinite, Timeout.Infinite);
 
             return Task.CompletedTask;
         }
@@ -117,12 +126,36 @@ namespace am.kon.packages.services.kafka
                         if (consumeResult.IsPartitionEOF)
                             return;
 
-                        _messagesQueue.Enqueue(consumeResult.Message);
-                        Interlocked.Increment(ref _messagesQueueLength);
+                        bool commitConsume = !_kafkaCoonsumerConfig.AutoCommit;
+
+                        if(_processMessageAsync == null)
+                        {
+                            _messagesQueue.Enqueue(consumeResult.Message);
+                            Interlocked.Increment(ref _messagesQueueLength);
+                        }
+                        else
+                        {
+                            try
+                            {
+                                if (!await _processMessageAsync(consumeResult.Message))
+                                {
+                                    commitConsume = false;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError("Unhandled exception in Kafka message processing delegate.", ex);
+                                commitConsume = false;
+                            }
+                        }
+
+                        if (commitConsume)
+                            _consumer.Commit(consumeResult);
+
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Consume error");
+                        _logger.LogError(ex, $"Consume error. ClientID: {_consumer.Name}");
                     }
                 }
             }
@@ -137,10 +170,16 @@ namespace am.kon.packages.services.kafka
         }
 
         /// <summary>
-        /// Tries to get message from arrived messages queue
+        /// Tries to retrieve a consumed message from the queue.
         /// </summary>
-        /// <param name="message">Instance of arrived message</param>
-        /// <returns></returns>
+        /// <param name="message">When this method returns, contains the consumed message if the method succeeded, 
+        /// or the default value for the type of the message parameter if the method failed.</param>
+        /// <returns>Returns <c>true</c> if a message was successfully dequeued; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// This method attempts to dequeue a message from the internal message queue. It is a non-blocking method
+        /// and will return immediately. If the queue is empty, the method will return <c>false</c>, and the output
+        /// parameter 'message' will be set to its default value.
+        /// </remarks>
         public bool TryGetMessage(out Message<TKey, TValue> message)
         {
             if (_messagesQueue.TryDequeue(out message))
@@ -150,6 +189,33 @@ namespace am.kon.packages.services.kafka
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Method to dispose all disposable resources
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                _consumer?.Dispose();
+                _cancellationTokenSource?.Dispose();
+                _consumerTimer?.Dispose();
+            }
+
+            _disposed = true;
+        }
+
+        /// <summary>
+        /// Dispose method implementation of IDisposable interface
+        /// </summary>
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
         }
     }
 }

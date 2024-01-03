@@ -15,7 +15,7 @@ namespace am.kon.packages.services.kafka
     /// <summary>
     /// Service to be used for producing data to Kafka server
     /// </summary>
-    public class KafkaDataProducerService<TKey, TValue>
+    public class KafkaDataProducerService<TKey, TValue> : IDisposable
     {
         private readonly ILogger<KafkaDataProducerService<TKey, TValue>> _logger;
         private readonly IConfiguration _configuration;
@@ -28,11 +28,12 @@ namespace am.kon.packages.services.kafka
 
         private readonly IProducer<TKey, TValue> _producer;
         private readonly ProducerConfig _producerConfig;
-        private readonly KafkaProducerConfig _kafkaProducerCoonfig;
+        private readonly KafkaProducerConfig _kafkaProducerConfig;
 
         private volatile int _messagesQueueLength;
         private volatile int _producingIsInProgress;
 
+        private bool _disposed = false;
 
         public int MessageQueueLength { get { return _messagesQueueLength; } }
 
@@ -45,9 +46,9 @@ namespace am.kon.packages.services.kafka
             _logger = logger;
             _configuration = configuration;
 
-            _kafkaProducerCoonfig = kafkaProducerOptions.Value;
+            _kafkaProducerConfig = kafkaProducerOptions.Value;
 
-            _producerConfig = _kafkaProducerCoonfig.ToProducerConfig();
+            _producerConfig = _kafkaProducerConfig.ToProducerConfig();
 
             _messagesQueue = new ConcurrentQueue<KafkaDataProducerMessage<TKey, TValue>>();
             _messagesQueueLength = 0;
@@ -62,9 +63,9 @@ namespace am.kon.packages.services.kafka
         }
 
         /// <summary>
-        /// Start service
+        /// Starts the Kafka producer service, enabling the periodic sending of queued messages to the Kafka server.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A task that represents the asynchronous start operation.</returns>
         public Task Start()
         {
             _producerTimer.Change(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
@@ -72,12 +73,13 @@ namespace am.kon.packages.services.kafka
         }
 
         /// <summary>
-        /// Stop Service
+        /// Stop the Kafka producer service
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A task that represents the asynchronous stop operation.</returns>
         public Task Stop()
         {
             _cancellationTokenSource.Cancel();
+            _producerTimer.Change(Timeout.Infinite, Timeout.Infinite);
 
             return Task.CompletedTask;
         }
@@ -85,8 +87,8 @@ namespace am.kon.packages.services.kafka
         /// <summary>
         /// Enqueue message to send to Kafka
         /// </summary>
-        /// <param name="message">Message to be send to Kafaka server</param>
-        public void EnqueMessage(KafkaDataProducerMessage<TKey, TValue> message)
+        /// <param name="message">The Kafka message to be enqueued for delivery.</param>
+        public void EnqueueMessage(KafkaDataProducerMessage<TKey, TValue> message)
         {
             _messagesQueue.Enqueue(message);
             Interlocked.Increment(ref _messagesQueueLength);
@@ -111,7 +113,7 @@ namespace am.kon.packages.services.kafka
         /// Background async task producing data to Kafka server
         /// </summary>
         /// <returns></returns>
-        private async Task ProduceQueueToKafka(Func<KafkaDataProducerMessage<TKey, TValue>, DeliveryResult<TKey, TValue>, Task> onProduceReport = null, Func<KafkaDataProducerMessage<TKey, TValue>, Exception, Task> onProduceException = null)
+        private async Task ProduceQueueToKafka()
         {
             try
             {
@@ -123,16 +125,16 @@ namespace am.kon.packages.services.kafka
                     {
                         DeliveryResult<TKey, TValue> deliveryReport = await _producer.ProduceAsync(message.TopicName, message.ToMessage(), _cancellationToken);
 
-                        if (!_cancellationToken.IsCancellationRequested && onProduceReport != null)
-                            await onProduceReport(message, deliveryReport);
+                        if (!_cancellationToken.IsCancellationRequested && message.OnProduceReportCallback != null)
+                            await message.OnProduceReportCallback(message, deliveryReport);
                     }
-                    catch (Exception ex)
+                    catch (KafkaException ex)
                     {
-                        if (onProduceException != null)
+                        if (message.OnProduceExceptionCallback != null)
                         {
                             try
                             {
-                                await onProduceException(message, ex);
+                                await message.OnProduceExceptionCallback(message, ex);
                             }
                             catch (Exception exx)
                             {
@@ -140,7 +142,13 @@ namespace am.kon.packages.services.kafka
                             }
                         }
                         else
-                            _logger.LogError(ex, "Unhandled exception on message delivery to kafka.");
+                        {
+                            _logger.LogError(ex, $"Kafka exception for message with key {message.Key} on topic {message.TopicName}.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Unhandled exception on message delivery to kafka.");
                     }
                 }
             }
@@ -152,6 +160,33 @@ namespace am.kon.packages.services.kafka
             {
                 Interlocked.Exchange(ref _producingIsInProgress, 0);
             }
+        }
+
+        /// <summary>
+        /// Method to dispose all disposable resources
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                _producer?.Dispose();
+                _cancellationTokenSource?.Dispose();
+                _producerTimer?.Dispose();
+            }
+
+            _disposed = true;
+        }
+
+        /// <summary>
+        /// Dispose method implementation of IDisposable interface
+        /// </summary>
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
         }
     }
 }
