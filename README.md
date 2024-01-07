@@ -32,9 +32,31 @@ Configure your Kafka services in '**appsettings.json**' as follows:
 }
 ```
 
-### KafkaProducerConfig and KafkaConsumerConfig
+## KafkaProducerConfig and KafkaConsumerConfig
 
 These sections define the settings for your Kafka producer and consumer, including bootstrap servers, timeouts, compression settings, and consumer group configuration.
+
+### KafkaProducerConfig Properties
+
++**BootstrapServers**: A comma-separated list of host and port pairs that are the addresses of the Kafka brokers in a "bootstrap" Kafka cluster that a Kafka client connects to initially to bootstrap itself. They are in the format host1:port1,host2:port2,....
++**MessageMaxBytes**: The maximum size of the message that the producer can send. It controls the maximum size of a message that can be produced.
++**ReceiveMessageMaxBytes**: The maximum size of a message that the producer can receive in response from the broker.
++**MessageTimeoutMs**: The time the producer will wait for a request to complete before timing out.
++**RequestTimeoutMs**: The maximum time in milliseconds the broker is allowed to process the request.
++**SocketTimeoutMs**: The timeout for network requests. The time to wait for a network operation to complete.
++**SocketKeepaliveEnable**: Enables TCP keep-alive on the socket connecting to the Kafka broker. It keeps the connection active even if no data is being transferred.
++**CompressionType**: Specifies the compression codec to use for compressing message sets. Common values are none, gzip, snappy, and lz4.
++**CompressionLevel**: Represents the compression level for compressed messages. The higher the level, the better the compression.
+
+### KafkaConsumerConfig Properties
+
++**BootstrapServers**: Similar to the producer, it's a list of Kafka broker addresses.
++**MessageMaxBytes**: Controls the maximum size of a fetch message. Helps to control memory usage of the consumer.
++**SocketTimeoutMs**: The timeout for network requests.
++**GroupId**: The name of the consumer group this consumer belongs to. Consumer groups allow a group of consumers to cooperate in consuming the messages.
++**MakeGroupUnique**: When set to true, appends a unique identifier (timestamp) to the GroupId, creating a unique consumer group on every run.
++**AutoCommit**: If set to true, the consumer's offset will be periodically committed in the background.
++**Topics**: An array of topics this consumer should subscribe to.
 
 ## Implementing Services
 ### KafkaDataProducerService
