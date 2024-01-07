@@ -181,4 +181,80 @@ public class ConsumerService
 }
 ```
 
-# am.kon.packages.services.kafka
+### One more case for KafkaDataConsumerService Integration
+#### Dependency Injection
+'**KafkaDataConsumerService<TKey, TValue>**' can be injected into your application, allowing derived classes to provide custom message processing logic.
+
+##### Configuration in Startup.cs
+```c#
+public void ConfigureServices(IServiceCollection services)
+{
+    // Other service configurations...
+
+    services.Configure<KafkaConsumerConfig>(Configuration.GetSection("KafkaConsumerConfig"));
+    services.AddSingleton<KafkaDataConsumerService<string, string>>();
+}
+```
+
+##### Implementing a Derived Class
+You can create a derived class that extends '**KafkaDataConsumerService<TKey, TValue>**' to provide custom message processing logic.
+
+```c#
+public class CustomKafkaConsumerService : KafkaDataConsumerService<string, string>
+{
+    public CustomKafkaConsumerService(
+        ILogger<KafkaDataConsumerService<string, string>> logger,
+        IConfiguration configuration,
+        IOptions<KafkaConsumerConfig> kafkaConsumerOptions)
+        : base(logger, configuration, kafkaConsumerOptions, ProcessMessageAsync)
+    {
+    }
+
+    private static async Task<bool> ProcessMessageAsync(Message<string, string> message)
+    {
+        // Implement custom processing logic
+        // Return true if processed successfully
+        return true;
+    }
+}
+```
+##### Dependency Injection for Derived Class
+Inject the derived consumer service in '**Startup.cs**':
+
+```c#
+public void ConfigureServices(IServiceCollection services)
+{
+    // Other service configurations...
+
+    services.AddSingleton<CustomKafkaConsumerService>();
+}
+```
+##### Usage Example
+Use the derived consumer service in your application:
+```c#
+public class ConsumerHostedService : IHostedService
+{
+    private readonly CustomKafkaConsumerService _consumerService;
+
+    public ConsumerHostedService(CustomKafkaConsumerService consumerService)
+    {
+        _consumerService = consumerService;
+    }
+
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        await _consumerService.Start();
+        // Consume messages...
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        return _consumerService.Stop();
+    }
+}
+```
+##### Note on ProcessMessageAsync
++ **Required**: No (Optional)
++ **Description**: '**ProcessMessageAsync**' is a delegate that, if provided, is used to process each consumed message. It should be a function that takes a '**Message<TKey, TValue>**' and returns a '**Task<bool>**', indicating whether the message was processed successfully.
++ **Behavior if Undefined**: If '**ProcessMessageAsync**' is not set in the derived class, the consumer service will simply enqueue the messages without processing them. It’s important to either provide this delegate or implement an alternative mechanism to process the messages from the queue.
+
