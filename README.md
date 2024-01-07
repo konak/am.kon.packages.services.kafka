@@ -255,6 +255,76 @@ public class ConsumerHostedService : IHostedService
 ```
 ##### Note on ProcessMessageAsync
 + **Required**: No (Optional)
-+ **Description**: '**ProcessMessageAsync**' is a delegate that, if provided, is used to process each consumed message. It should be a function that takes a '**Message<TKey, TValue>**' and returns a '**Task<bool>**', indicating whether the message was processed successfully.
-+ **Behavior if Undefined**: If '**ProcessMessageAsync**' is not set in the derived class, the consumer service will simply enqueue the messages without processing them. It’s important to either provide this delegate or implement an alternative mechanism to process the messages from the queue.
++ **Description**: '**ProcessMessageAsync**' is a delegate that, if provided, is used to process each consumed message. It should be a function that takes a '**Message<TKey, TValue>**' and returns a '**Task**<**bool**>**', indicating whether the message was processed successfully.
++ **Behavior if Undefined**: If '**ProcessMessageAsync**' is not set in the derived class, the consumer service will enqueue the messages without processing them. In this scenario, the enqueued messages can be accessed and processed using the '**TryGetMessage**' method. This method attempts to dequeue a message from the internal queue, allowing for processing or handling elsewhere in the application. This method provides a non-blocking way to retrieve messages from the queue. It returns '**true**' if a message was successfully dequeued or '**false**' if the queue is empty.
+
+##### Example Service for Consuming Messages
+``` c#
+public class MessageProcessingService
+{
+    private readonly KafkaDataConsumerService<string, string> _consumerService;
+    private readonly CancellationTokenSource _cancellationTokenSource;
+
+    public MessageProcessingService(KafkaDataConsumerService<string, string> consumerService)
+    {
+        _consumerService = consumerService;
+        _cancellationTokenSource = new CancellationTokenSource();
+    }
+
+    public void StartProcessing()
+    {
+        Task.Run(async () => await ProcessMessages());
+    }
+
+    private async Task ProcessMessages()
+    {
+        while (!_cancellationTokenSource.IsCancellationRequested)
+        {
+            if (_consumerService.TryGetMessage(out Message<string, string> message))
+            {
+                // Process the message
+                ProcessMessage(message);
+            }
+            else
+            {
+                // No message in the queue, wait for a short duration before checking again
+                await Task.Delay(1000); // Wait time can be adjusted as needed
+            }
+        }
+    }
+
+    private void ProcessMessage(Message<string, string> message)
+    {
+        // Implement the message processing logic here
+        Console.WriteLine($"Message received: Key={message.Key}, Value={message.Value}");
+    }
+
+    public void StopProcessing()
+    {
+        _cancellationTokenSource.Cancel();
+    }
+}
+```
+##### Usage in the Application
+Here's how you might use '**MessageProcessingService**' in your application:
+```c#
+public class MyApp
+{
+    public static void Main(string[] args)
+    {
+        // Assuming you have a configured KafkaDataConsumerService instance
+        var consumerService = new KafkaDataConsumerService<string, string>(/* ...dependencies... */);
+
+        var messageProcessingService = new MessageProcessingService(consumerService);
+        messageProcessingService.StartProcessing();
+
+        Console.WriteLine("Press any key to stop...");
+        Console.ReadKey();
+
+        messageProcessingService.StopProcessing();
+    }
+}
+```
+In this example, '**MessageProcessingService**' continuously checks for new messages using '**TryGetMessage**'. When a message is available, it's passed to '**ProcessMessage**' for further processing. The service runs in its own task, separate from the main thread, and can be stopped by calling '**StopProcessing**'.
+
 
