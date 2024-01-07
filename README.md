@@ -3,14 +3,14 @@
 
 # Kafka Services Integration Guide
 
-This guide provides instructions on integrating and using the 'KafkaDataConsumerService' and 'KafkaDataProducerService' in a .NET application.
+This guide provides instructions on integrating and using the '**KafkaDataConsumerService**' and '**KafkaDataProducerService**' in a .NET application.
 
 ## Configuration
 ### appsettings.json
 
-Configure your Kafka services in 'appsettings.json' as follows:
+Configure your Kafka services in '**appsettings.json**' as follows:
 
-
+```json
 {
   "KafkaProducerConfig": {
     "BootstrapServers": "localhost:9092",
@@ -39,8 +39,9 @@ These sections define the settings for your Kafka producer and consumer, includi
 ### KafkaDataProducerService
 
 Dependency Injection
-In your 'Startup.cs' or wherever you configure services, add the 'KafkaDataProducerService':
+In your '**Startup.cs**' or wherever you configure services, add the '**KafkaDataProducerService**':
 
+```csharp
 public void ConfigureServices(IServiceCollection services)
 {
     // Other service configurations...
@@ -50,9 +51,9 @@ public void ConfigureServices(IServiceCollection services)
 }
 
 Usage Example
-Inject and use the 'KafkaDataProducerService' in your application:
+Inject and use the '**KafkaDataProducerService**' in your application:
 
-
+```csharp
 public class MyService
 {
     private readonly KafkaDataProducerService<string, string> _producerService;
@@ -88,8 +89,9 @@ public class MyService
 
 ### KafkaDataConsumerService
 Dependency Injection
-In your 'Startup.cs' or wherever you configure services, add the 'KafkaDataConsumerService':
+In your '**Startup.cs**' or wherever you configure services, add the '**KafkaDataConsumerService**':
 
+```csharp
 public void ConfigureServices(IServiceCollection services)
 {
     // Other service configurations...
@@ -116,8 +118,9 @@ private static Task<bool> ProcessMessageAsync(Message<string, string> message)
 }
 
 Usage Example
-Inject and use the 'KafkaDataConsumerService' in your application:
+Inject and use the '**KafkaDataConsumerService**' in your application:
 
+```csharp
 public class ConsumerService
 {
     private readonly KafkaDataConsumerService<string, string> _consumerService;
