@@ -112,6 +112,23 @@ public class MyService
 }
 ```
 
+#### Notes on KafkaDataProducerMessage some properties
+
+##### OnProduceReportCallback
+
++ **Type**: '**Func<KafkaDataProducerMessage<TKey, TValue>, DeliveryResult<TKey, TValue>, Task>**'
++ **Required**: No (Optional)
++ **Description**: This callback function is invoked after a message has been successfully produced to Kafka. It provides an opportunity for additional processing or logging based on the successful delivery of the message. The callback receives two parameters: the message that was produced and the delivery report from Kafka, which contains details about the delivery.
++ **Behavior if Undefined**: If '**OnProduceReportCallback**' is not set, the Kafka producer will still send messages, but no additional action will be taken upon the successful delivery of messages. This means that you won't have custom logic executed for acknowledgment or logging tied to each message's delivery success.
+
+##### OnProduceExceptionCallback
+
++ **Type**: '**Func<KafkaDataProducerMessage<TKey, TValue>, Exception, Task>**'
++ **Required**: No (Optional)
++ **Description**: This callback function is called when an exception occurs during the message production process. It allows for custom handling of exceptions, such as logging specific errors or performing recovery actions. The callback receives two parameters: the message that failed to be produced and the exception that was thrown. Implementing this callback can provide insights into any issues that occur during message production.
++ **Behavior if Undefined**: If '**OnProduceExceptionCallback**' is not defined, the Kafka producer will not perform any custom exception handling. This means that while exceptions will still be caught and logged at a general level by the producer service, you won't have specific custom logic executed for each exception. It is important to handle exceptions appropriately to ensure that your application can gracefully handle scenarios where message production fails.
+
+
 ### KafkaDataConsumerService
 Dependency Injection
 In your '**Startup.cs**' or wherever you configure services, add the '**KafkaDataConsumerService**':
