@@ -30,6 +30,7 @@ Configure your Kafka services in '**appsettings.json**' as follows:
     "Topics": ["topic1", "topic2"]
   }
 }
+```
 
 ### KafkaProducerConfig and KafkaConsumerConfig
 
@@ -49,6 +50,7 @@ public void ConfigureServices(IServiceCollection services)
     services.Configure<KafkaProducerConfig>(Configuration.GetSection("KafkaProducerConfig"));
     services.AddSingleton<KafkaDataProducerService<string, string>>();
 }
+```
 
 Usage Example
 Inject and use the '**KafkaDataProducerService**' in your application:
@@ -86,6 +88,7 @@ public class MyService
         await _producerService.Start();
     }
 }
+```
 
 ### KafkaDataConsumerService
 Dependency Injection
@@ -116,6 +119,7 @@ private static Task<bool> ProcessMessageAsync(Message<string, string> message)
     // Implement message processing logic
     return Task.FromResult(true); // Return true if processed successfully
 }
+```
 
 Usage Example
 Inject and use the '**KafkaDataConsumerService**' in your application:
@@ -136,6 +140,6 @@ public class ConsumerService
         // Consume messages...
     }
 }
-
+```
 
 # am.kon.packages.services.kafka
