@@ -1,6 +1,26 @@
 [![.net build main and dev](https://github.com/konak/am.kon.packages.services.kafka/actions/workflows/dotnet.yml/badge.svg)](https://github.com/konak/am.kon.packages.services.kafka/actions/workflows/dotnet.yml)
 [![.net package publish to nuget](https://github.com/konak/am.kon.packages.services.kafka/actions/workflows/dotnet-beta-release.yml/badge.svg)](https://github.com/konak/am.kon.packages.services.kafka/actions/workflows/dotnet-beta-release.yml)
 
+# Why Use KafkaDataConsumerService and KafkaDataProducerService?
+## Simplified Kafka Integration
++ **Ease of Use**: These services abstract the complexities of directly interacting with Kafka APIs, offering a more straightforward and user-friendly way to implement Kafka producers and consumers in .NET applications.
++ **Configurable**: With easy-to-set configuration options in '**appsettings.json**', these services allow for quick adjustments to Kafka settings without diving deep into code changes.
+## Enhanced Message Processing
++ **Asynchronous Processing**: Built-in support for asynchronous processing helps in building responsive and performant applications.
++ **Customizable Message Handling**: The ability to define custom message processing logic (via '**ProcessMessageAsync**') provides flexibility to tailor the behavior based on specific business requirements.
+## Robust Error Handling and Reporting
++ **Error Handling**: The services include robust error handling mechanisms, reducing the chances of unhandled exceptions and improving application stability.
++ **Callback Functions**: '**OnProduceReportCallback**' and '**OnProduceExceptionCallback**' in the producer service allow for detailed monitoring and logging of message delivery status and handling of production exceptions.
+## Scalability and Performance
++ **Concurrent Processing**: Utilization of '**ConcurrentQueue**' and efficient management of threads ensure that the services are capable of handling high-throughput scenarios.
++ **Manual Offset Management**: The consumer service's ability to manually commit offsets (controllable via '**AutoCommit**' configuration) provides greater control over message processing, ensuring that messages are not marked as "consumed" until they are successfully processed.
+## Versatility in Message Handling
++ **Flexibility with Message Queue**: In the consumer service, if '**ProcessMessageAsync**' is not set, messages are queued, allowing for alternative processing strategies. Messages can be processed at a later time using the '**TryGetMessage**' method.
++ **Adaptability**: Suitable for various use cases, from simple message passing to complex, high-throughput streaming applications.
+## Clean and Maintainable Code
++ **Modularity**: Services are designed to be modular and easily integrable into existing applications.
++ **Encapsulation**: Encapsulation of Kafka-related functionalities within services keeps the codebase clean and maintainable.
+
 # Kafka Services Integration Guide
 
 This guide provides instructions on integrating and using the '**KafkaDataConsumerService**' and '**KafkaDataProducerService**' in a .NET application.
