@@ -23,17 +23,17 @@ namespace am.kon.packages.services.kafka
         private readonly CancellationToken _cancellationToken;
 
         private readonly ConcurrentQueue<Message<TKey, TValue>> _messagesQueue;
-        private volatile int _messagesQueueLength;
+        private int _messagesQueueLength;
 
         private readonly Timer _consumerTimer;
-        private volatile int _consumingIsInProgress;
+        private int _consumingIsInProgress;
 
         private readonly IConsumer<TKey, TValue> _consumer;
         private readonly ConsumerConfig _consumerConfig;
 
         private readonly KafkaConsumerConfig _kafkaCoonsumerConfig;
 
-        private bool _disposed = false;
+        private int _disposed;
 
         protected readonly Func<Message<TKey, TValue>, Task<bool>> _processMessageAsync;
 
@@ -64,6 +64,8 @@ namespace am.kon.packages.services.kafka
             _consumerTimer = new Timer(new TimerCallback(ConsumerTimerHandler), null, Timeout.Infinite, Timeout.Infinite);
             _consumingIsInProgress = 0;
 
+            _disposed = 0;
+            
             _cancellationTokenSource = new CancellationTokenSource();
             _cancellationToken = _cancellationTokenSource.Token;
         }
@@ -196,17 +198,14 @@ namespace am.kon.packages.services.kafka
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
-            if (_disposed)
+            int originalValue = Interlocked.CompareExchange(ref _disposed, 1, 0);
+            
+            if(originalValue != 0 || !disposing)
                 return;
 
-            if (disposing)
-            {
-                _consumer?.Dispose();
-                _cancellationTokenSource?.Dispose();
-                _consumerTimer?.Dispose();
-            }
-
-            _disposed = true;
+            _consumer?.Dispose();
+            _cancellationTokenSource?.Dispose();
+            _consumerTimer?.Dispose();
         }
 
         /// <summary>

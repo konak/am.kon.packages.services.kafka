@@ -30,10 +30,10 @@ namespace am.kon.packages.services.kafka
         private readonly ProducerConfig _producerConfig;
         private readonly KafkaProducerConfig _kafkaProducerConfig;
 
-        private volatile int _messagesQueueLength;
-        private volatile int _producingIsInProgress;
+        private int _messagesQueueLength;
+        private int _producingIsInProgress;
 
-        private bool _disposed = false;
+        private int _disposed;
 
         public int MessageQueueLength { get { return _messagesQueueLength; } }
 
@@ -58,6 +58,8 @@ namespace am.kon.packages.services.kafka
             _producerTimer = new Timer(new TimerCallback(ProducerTimerHandler), null, Timeout.Infinite, Timeout.Infinite);
             _producingIsInProgress = 0;
 
+            _disposed = 0;
+            
             _cancellationTokenSource = new CancellationTokenSource();
             _cancellationToken = _cancellationTokenSource.Token;
         }
@@ -167,17 +169,14 @@ namespace am.kon.packages.services.kafka
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
-            if (_disposed)
+            int originalValue = Interlocked.CompareExchange(ref _disposed, 1, 0);
+
+            if (originalValue != 0 || !disposing)
                 return;
 
-            if (disposing)
-            {
-                _producer?.Dispose();
-                _cancellationTokenSource?.Dispose();
-                _producerTimer?.Dispose();
-            }
-
-            _disposed = true;
+            _producer?.Dispose();
+            _cancellationTokenSource?.Dispose();
+            _producerTimer?.Dispose();
         }
 
         /// <summary>
