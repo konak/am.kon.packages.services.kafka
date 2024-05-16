@@ -17,7 +17,7 @@ namespace am.kon.packages.services.kafka
     public class KafkaDataConsumerService<TKey, TValue>
     {
         private readonly ILogger<KafkaDataConsumerService<TKey, TValue>> _logger;
-        private readonly IConfiguration _configuration;
+        protected readonly IConfiguration Configuration;
 
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly CancellationToken _cancellationToken;
@@ -29,13 +29,13 @@ namespace am.kon.packages.services.kafka
         private int _consumingIsInProgress;
 
         private readonly IConsumer<TKey, TValue> _consumer;
-        private readonly ConsumerConfig _consumerConfig;
+        protected readonly ConsumerConfig ConsumerConfig;
 
-        private readonly KafkaConsumerConfig _kafkaCoonsumerConfig;
+        private readonly KafkaConsumerConfig _kafkaConsumerConfig;
 
         private int _disposed;
 
-        protected readonly Func<Message<TKey, TValue>, Task<bool>> _processMessageAsync;
+        protected readonly Func<Message<TKey, TValue>, Task<bool>> ProcessMessageAsync;
 
         public KafkaDataConsumerService(
             ILogger<KafkaDataConsumerService<TKey, TValue>> logger,
@@ -46,22 +46,22 @@ namespace am.kon.packages.services.kafka
             )
         {
             _logger = logger;
-            _configuration = configuration;
+            Configuration = configuration;
 
             _messagesQueue = new ConcurrentQueue<Message<TKey, TValue>>();
             _messagesQueueLength = 0;
 
-            _kafkaCoonsumerConfig = kafkaConsumerOptions.Value;
-            _consumerConfig = _kafkaCoonsumerConfig.ToConsumerConfig();
+            _kafkaConsumerConfig = kafkaConsumerOptions.Value;
+            ConsumerConfig = _kafkaConsumerConfig.ToConsumerConfig();
 
-            if (_kafkaCoonsumerConfig.MakeGroupUnique)
-                _consumerConfig.GroupId += $"_{DateTime.Now}";
+            if (_kafkaConsumerConfig.MakeGroupUnique)
+                ConsumerConfig.GroupId += $"_{DateTime.Now}";
 
-            _consumer = new ConsumerBuilder<TKey, TValue>(_consumerConfig).Build();
+            _consumer = new ConsumerBuilder<TKey, TValue>(ConsumerConfig).Build();
 
-            _processMessageAsync = processMessageAsync;
+            ProcessMessageAsync = processMessageAsync;
 
-            _consumerTimer = new Timer(new TimerCallback(ConsumerTimerHandler), null, Timeout.Infinite, Timeout.Infinite);
+            _consumerTimer = new Timer(ConsumerTimerHandler, null, Timeout.Infinite, Timeout.Infinite);
             _consumingIsInProgress = 0;
 
             _disposed = 0;
@@ -76,7 +76,7 @@ namespace am.kon.packages.services.kafka
         /// <returns></returns>
         public Task Start()
         {
-            foreach (string topicName in _kafkaCoonsumerConfig.Topics)
+            foreach (string topicName in _kafkaConsumerConfig.Topics)
             {
                 _consumer.Subscribe(topicName);
             }
@@ -128,9 +128,9 @@ namespace am.kon.packages.services.kafka
                         if (consumeResult.IsPartitionEOF)
                             return;
 
-                        bool commitConsume = !_kafkaCoonsumerConfig.AutoCommit;
+                        bool commitConsume = !_kafkaConsumerConfig.AutoCommit;
 
-                        if(_processMessageAsync == null)
+                        if(ProcessMessageAsync == null)
                         {
                             _messagesQueue.Enqueue(consumeResult.Message);
                             Interlocked.Increment(ref _messagesQueueLength);
@@ -139,14 +139,14 @@ namespace am.kon.packages.services.kafka
                         {
                             try
                             {
-                                if (!await _processMessageAsync(consumeResult.Message))
+                                if (!await ProcessMessageAsync(consumeResult.Message))
                                 {
                                     commitConsume = false;
                                 }
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError("Unhandled exception in Kafka message processing delegate.", ex);
+                                _logger.LogError(ex, "Unhandled exception in Kafka message processing delegate.");
                                 commitConsume = false;
                             }
                         }
