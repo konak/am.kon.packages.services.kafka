@@ -346,5 +346,3 @@ public class MyApp
 }
 ```
 In this example, '**MessageProcessingService**' continuously checks for new messages using '**TryGetMessage**'. When a message is available, it's passed to '**ProcessMessage**' for further processing. The service runs in its own task, separate from the main thread, and can be stopped by calling '**StopProcessing**'.
-
-
