@@ -35,7 +35,7 @@ namespace am.kon.packages.services.kafka
 
         private int _disposed;
 
-        protected readonly Func<Message<TKey, TValue>, Task<bool>> ProcessMessageAsync;
+        protected Func<Message<TKey, TValue>, Task<bool>> ProcessMessageAsync { get; set; }
 
         public KafkaDataConsumerService(
             ILogger<KafkaDataConsumerService<TKey, TValue>> logger,
@@ -153,7 +153,6 @@ namespace am.kon.packages.services.kafka
 
                         if (commitConsume)
                             _consumer.Commit(consumeResult);
-
                     }
                     catch (Exception ex)
                     {

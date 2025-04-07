@@ -5,13 +5,14 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <PackageId>am.kon.packages.services.kafka</PackageId>
-    <PackageVersion>0.1.0.4</PackageVersion>
+    <PackageVersion>0.1.0.5</PackageVersion>
     <Authors>sergey konakov</Authors>
     <Description>Kafka connectioon component to be used as a service with dependency injection in .net core applications implementing functionality to interact with Kafka server. Wrapping Confluent.Kafka package.</Description>
     <RepositoryUrl>https://github.com/konak/am.kon.packages.services.kafka</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>kafka connection service consumer producer</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <LangVersion>9</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
