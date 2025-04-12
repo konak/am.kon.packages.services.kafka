@@ -32,6 +32,8 @@ namespace am.kon.packages.services.kafka
         protected readonly ConsumerConfig ConsumerConfig;
 
         private readonly KafkaConsumerConfig _kafkaConsumerConfig;
+        
+        private readonly KafkaTopicManagerService _kafkaTopicManagerService;
 
         private int _disposed;
 
@@ -42,6 +44,7 @@ namespace am.kon.packages.services.kafka
             IConfiguration configuration,
 
             IOptions<KafkaConsumerConfig> kafkaConsumerOptions,
+            KafkaTopicManagerService kafkaTopicManagerService,
             Func<Message<TKey, TValue>, Task<bool>> processMessageAsync = null
             )
         {
@@ -50,6 +53,8 @@ namespace am.kon.packages.services.kafka
 
             _messagesQueue = new ConcurrentQueue<Message<TKey, TValue>>();
             _messagesQueueLength = 0;
+            
+            _kafkaTopicManagerService = kafkaTopicManagerService;
 
             _kafkaConsumerConfig = kafkaConsumerOptions.Value;
             ConsumerConfig = _kafkaConsumerConfig.ToConsumerConfig();
@@ -74,15 +79,16 @@ namespace am.kon.packages.services.kafka
         /// Start service
         /// </summary>
         /// <returns></returns>
-        public Task Start()
+        public async Task Start()
         {
+            await _kafkaTopicManagerService.WaitForTopicsCreation();
+            
             foreach (string topicName in _kafkaConsumerConfig.Topics)
             {
                 _consumer.Subscribe(topicName);
             }
 
             _consumerTimer.Change(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
-            return Task.CompletedTask;
         }
 
         /// <summary>

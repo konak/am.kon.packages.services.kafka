@@ -30,6 +30,8 @@ namespace am.kon.packages.services.kafka
         private readonly ProducerConfig _producerConfig;
         private readonly KafkaProducerConfig _kafkaProducerConfig;
 
+        private readonly KafkaTopicManagerService _kafkaTopicManagerService;
+        
         private int _messagesQueueLength;
         private int _producingIsInProgress;
 
@@ -40,7 +42,8 @@ namespace am.kon.packages.services.kafka
         public KafkaDataProducerService(
             ILogger<KafkaDataProducerService<TKey, TValue>> logger,
             IConfiguration configuration,
-            IOptions<KafkaProducerConfig> kafkaProducerOptions
+            IOptions<KafkaProducerConfig> kafkaProducerOptions,
+            KafkaTopicManagerService kafkaTopicManagerService
             )
         {
             _logger = logger;
@@ -49,6 +52,8 @@ namespace am.kon.packages.services.kafka
             _kafkaProducerConfig = kafkaProducerOptions.Value;
 
             _producerConfig = _kafkaProducerConfig.ToProducerConfig();
+            
+            _kafkaTopicManagerService = kafkaTopicManagerService;
 
             _messagesQueue = new ConcurrentQueue<KafkaDataProducerMessage<TKey, TValue>>();
             _messagesQueueLength = 0;
@@ -68,10 +73,11 @@ namespace am.kon.packages.services.kafka
         /// Starts the Kafka producer service, enabling the periodic sending of queued messages to the Kafka server.
         /// </summary>
         /// <returns>A task that represents the asynchronous start operation.</returns>
-        public Task Start()
+        public async Task Start()
         {
+            await _kafkaTopicManagerService.WaitForTopicsCreation();
+            
             _producerTimer.Change(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
-            return Task.CompletedTask;
         }
 
         /// <summary>
