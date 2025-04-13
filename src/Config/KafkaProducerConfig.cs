@@ -56,6 +56,11 @@ namespace am.kon.packages.services.kafka.Config
         /// Level of message compression
         /// </summary>
         public int CompressionLevel { get; set; }
+
+        /// <summary>
+        /// Indicates whether to wait for the Topic Manager initialization process before sending messages.
+        /// </summary>
+        public bool AwaitForTopicManager { get; set; }
     }
 }
 

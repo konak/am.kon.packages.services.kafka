@@ -31,7 +31,7 @@ namespace am.kon.packages.services.kafka
         private readonly KafkaProducerConfig _kafkaProducerConfig;
 
         private readonly KafkaTopicManagerService _kafkaTopicManagerService;
-        
+
         private int _messagesQueueLength;
         private int _producingIsInProgress;
 
@@ -52,7 +52,7 @@ namespace am.kon.packages.services.kafka
             _kafkaProducerConfig = kafkaProducerOptions.Value;
 
             _producerConfig = _kafkaProducerConfig.ToProducerConfig();
-            
+
             _kafkaTopicManagerService = kafkaTopicManagerService;
 
             _messagesQueue = new ConcurrentQueue<KafkaDataProducerMessage<TKey, TValue>>();
@@ -64,7 +64,7 @@ namespace am.kon.packages.services.kafka
             _producingIsInProgress = 0;
 
             _disposed = 0;
-            
+
             _cancellationTokenSource = new CancellationTokenSource();
             _cancellationToken = _cancellationTokenSource.Token;
         }
@@ -75,8 +75,9 @@ namespace am.kon.packages.services.kafka
         /// <returns>A task that represents the asynchronous start operation.</returns>
         public async Task Start()
         {
-            await _kafkaTopicManagerService.WaitForTopicsCreation();
-            
+            if (_kafkaProducerConfig.AwaitForTopicManager)
+                await _kafkaTopicManagerService.WaitForTopicsCreation();
+
             _producerTimer.Change(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         }
 
@@ -175,9 +176,12 @@ namespace am.kon.packages.services.kafka
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
+            if(!disposing)
+                return;
+
             int originalValue = Interlocked.CompareExchange(ref _disposed, 1, 0);
 
-            if (originalValue != 0 || !disposing)
+            if (originalValue != 0)
                 return;
 
             _producer?.Dispose();

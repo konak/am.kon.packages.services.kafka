@@ -42,8 +42,13 @@ namespace am.kon.packages.services.kafka.Config
         public bool AutoCommit { get; set; }
 
         /// <summary>
-        /// List of topics to subscribe to
+        /// Name of topics to subscribe to
         /// </summary>
-        public string[] Topics { get; set; }
+        public string Topic { get; set; }
+
+        /// <summary>
+        /// Indicates whether to wait for the Topic Manager to initialize before consuming messages
+        /// </summary>
+        public bool AwaitForTopicManager { get; set; }
     }
 }

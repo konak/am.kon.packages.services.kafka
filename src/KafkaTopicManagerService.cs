@@ -20,14 +20,14 @@ namespace am.kon.packages.services.kafka
         private readonly KafkaTopicManagerConfig _config;
         private readonly AdminClientConfig _adminClientConfig;
         private readonly IAdminClient _adminClient;
-        
+
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly CancellationToken _cancellationToken;
 
         private int _disposed;
         private volatile bool _topicsCreated;
-        
-        
+
+
         /// <summary>
         /// Initializes a new instance of the <see cref="KafkaTopicManagerService"/> class.
         /// This service is responsible for managing Kafka topics and ensuring their existence in the Kafka cluster.
@@ -41,17 +41,17 @@ namespace am.kon.packages.services.kafka
         {
             _logger = logger;
             _config = configOptions.Value;
-        
+
             _adminClientConfig = new AdminClientConfig
             {
                 BootstrapServers = _config.BootstrapServers,
             };
-            
+
             _adminClient = new AdminClientBuilder(_adminClientConfig).Build();
-            
+
             _topicsCreated = false;
             _disposed = 0;
-            
+
             _cancellationTokenSource = new CancellationTokenSource();
             _cancellationToken = _cancellationTokenSource.Token;
         }
@@ -73,7 +73,7 @@ namespace am.kon.packages.services.kafka
         public Task Stop()
         {
             _cancellationTokenSource.Cancel();
-            
+
             return Task.CompletedTask;
         }
 
@@ -150,11 +150,41 @@ namespace am.kon.packages.services.kafka
                     }
                 }
 
-                if (!topicsCreationError)
+                if (topicsCreationError)
+                {
+                    await Task.Delay(3000);
+                }
+                else
                 {
                     _topicsCreated = true;
                 }
             }
+        }
+
+        /// <summary>
+        /// Method to dispose all disposable resources
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if(!disposing)
+                return;
+
+            int originalValue = Interlocked.CompareExchange(ref _disposed, 1, 0);
+
+            if(originalValue != 0)
+                return;
+
+            _adminClient?.Dispose();
+            _cancellationTokenSource?.Dispose();
+        }
+
+        /// <summary>
+        /// Dispose method implementation of IDisposable interface
+        /// </summary>
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
         }
     }
 }

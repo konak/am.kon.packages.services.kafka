@@ -32,7 +32,7 @@ namespace am.kon.packages.services.kafka
         protected readonly ConsumerConfig ConsumerConfig;
 
         private readonly KafkaConsumerConfig _kafkaConsumerConfig;
-        
+
         private readonly KafkaTopicManagerService _kafkaTopicManagerService;
 
         private int _disposed;
@@ -53,7 +53,7 @@ namespace am.kon.packages.services.kafka
 
             _messagesQueue = new ConcurrentQueue<Message<TKey, TValue>>();
             _messagesQueueLength = 0;
-            
+
             _kafkaTopicManagerService = kafkaTopicManagerService;
 
             _kafkaConsumerConfig = kafkaConsumerOptions.Value;
@@ -70,7 +70,7 @@ namespace am.kon.packages.services.kafka
             _consumingIsInProgress = 0;
 
             _disposed = 0;
-            
+
             _cancellationTokenSource = new CancellationTokenSource();
             _cancellationToken = _cancellationTokenSource.Token;
         }
@@ -81,12 +81,10 @@ namespace am.kon.packages.services.kafka
         /// <returns></returns>
         public async Task Start()
         {
-            await _kafkaTopicManagerService.WaitForTopicsCreation();
-            
-            foreach (string topicName in _kafkaConsumerConfig.Topics)
-            {
-                _consumer.Subscribe(topicName);
-            }
+            if (_kafkaConsumerConfig.AwaitForTopicManager)
+                await _kafkaTopicManagerService.WaitForTopicsCreation();
+
+            _consumer.Subscribe(_kafkaConsumerConfig.Topic);
 
             _consumerTimer.Change(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         }
@@ -131,9 +129,10 @@ namespace am.kon.packages.services.kafka
                     {
                         ConsumeResult<TKey, TValue> consumeResult = await Task.Run(() => _consumer.Consume(_cancellationToken));
 
-                        if (consumeResult.IsPartitionEOF)
+                        if (consumeResult.IsPartitionEOF || _cancellationToken.IsCancellationRequested)
                             return;
 
+                        // if AutoCommit is enabled there is no need to coll _consumer.Commit
                         bool commitConsume = !_kafkaConsumerConfig.AutoCommit;
 
                         if(ProcessMessageAsync == null)
@@ -145,10 +144,7 @@ namespace am.kon.packages.services.kafka
                         {
                             try
                             {
-                                if (!await ProcessMessageAsync(consumeResult.Message))
-                                {
-                                    commitConsume = false;
-                                }
+                                commitConsume = await ProcessMessageAsync(consumeResult.Message);
                             }
                             catch (Exception ex)
                             {
@@ -179,7 +175,7 @@ namespace am.kon.packages.services.kafka
         /// <summary>
         /// Tries to retrieve a consumed message from the queue.
         /// </summary>
-        /// <param name="message">When this method returns, contains the consumed message if the method succeeded, 
+        /// <param name="message">When this method returns, contains the consumed message if the method succeeded,
         /// or the default value for the type of the message parameter if the method failed.</param>
         /// <returns>Returns <c>true</c> if a message was successfully dequeued; otherwise, <c>false</c>.</returns>
         /// <remarks>
@@ -203,9 +199,12 @@ namespace am.kon.packages.services.kafka
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
+            if(!disposing)
+                return;
+
             int originalValue = Interlocked.CompareExchange(ref _disposed, 1, 0);
-            
-            if(originalValue != 0 || !disposing)
+
+            if(originalValue != 0)
                 return;
 
             _consumer?.Dispose();
