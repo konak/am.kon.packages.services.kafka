@@ -17,25 +17,25 @@ namespace am.kon.packages.services.kafka
     /// </summary>
     public class KafkaDataProducerService<TKey, TValue> : IDisposable
     {
-        private readonly ILogger<KafkaDataProducerService<TKey, TValue>> _logger;
-        private readonly IConfiguration _configuration;
+        protected readonly ILogger<KafkaDataProducerService<TKey, TValue>> _logger;
+        protected readonly IConfiguration _configuration;
 
-        private readonly CancellationTokenSource _cancellationTokenSource;
-        private readonly CancellationToken _cancellationToken;
+        protected readonly CancellationTokenSource _cancellationTokenSource;
+        protected readonly CancellationToken _cancellationToken;
 
         private readonly ConcurrentQueue<KafkaDataProducerMessage<TKey, TValue>> _messagesQueue;
         private readonly Timer _producerTimer;
 
         private readonly IProducer<TKey, TValue> _producer;
         private readonly ProducerConfig _producerConfig;
-        private readonly KafkaProducerConfig _kafkaProducerConfig;
+        protected readonly KafkaProducerConfig _kafkaProducerConfig;
 
         private readonly KafkaTopicManagerService _kafkaTopicManagerService;
 
         private int _messagesQueueLength;
         private int _producingIsInProgress;
 
-        private int _disposed;
+        protected int _disposed;
 
         public int MessageQueueLength { get { return _messagesQueueLength; } }
 

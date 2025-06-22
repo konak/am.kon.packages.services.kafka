@@ -16,15 +16,15 @@ namespace am.kon.packages.services.kafka
     /// </summary>
     public class KafkaTopicManagerService
     {
-        private readonly ILogger<KafkaTopicManagerService> _logger;
-        private readonly KafkaTopicManagerConfig _config;
-        private readonly AdminClientConfig _adminClientConfig;
+        protected readonly ILogger<KafkaTopicManagerService> _logger;
+        protected readonly KafkaTopicManagerConfig _config;
+        protected readonly AdminClientConfig _adminClientConfig;
         private readonly IAdminClient _adminClient;
 
-        private readonly CancellationTokenSource _cancellationTokenSource;
-        private readonly CancellationToken _cancellationToken;
+        protected readonly CancellationTokenSource _cancellationTokenSource;
+        protected readonly CancellationToken _cancellationToken;
 
-        private int _disposed;
+        protected int _disposed;
         private volatile bool _topicsCreated;
 
 

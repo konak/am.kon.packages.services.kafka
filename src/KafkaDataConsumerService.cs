@@ -16,11 +16,11 @@ namespace am.kon.packages.services.kafka
     /// </summary>
     public class KafkaDataConsumerService<TKey, TValue>
     {
-        private readonly ILogger<KafkaDataConsumerService<TKey, TValue>> _logger;
+        protected readonly ILogger<KafkaDataConsumerService<TKey, TValue>> _logger;
         protected readonly IConfiguration Configuration;
 
-        private readonly CancellationTokenSource _cancellationTokenSource;
-        private readonly CancellationToken _cancellationToken;
+        protected readonly CancellationTokenSource _cancellationTokenSource;
+        protected readonly CancellationToken _cancellationToken;
 
         private readonly ConcurrentQueue<Message<TKey, TValue>> _messagesQueue;
         private int _messagesQueueLength;
@@ -35,7 +35,7 @@ namespace am.kon.packages.services.kafka
 
         private readonly KafkaTopicManagerService _kafkaTopicManagerService;
 
-        private int _disposed;
+        protected int _disposed;
 
         protected Func<Message<TKey, TValue>, Task<bool>> ProcessMessageAsync { get; set; }
 
