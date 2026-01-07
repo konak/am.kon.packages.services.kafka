@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,6 +27,7 @@ namespace am.kon.packages.services.kafka
 
         protected int _disposed;
         private volatile bool _topicsCreated;
+        private int _configLogged;
 
 
         /// <summary>
@@ -51,6 +53,7 @@ namespace am.kon.packages.services.kafka
 
             _topicsCreated = false;
             _disposed = 0;
+            _configLogged = 0;
 
             _cancellationTokenSource = new CancellationTokenSource();
             _cancellationToken = _cancellationTokenSource.Token;
@@ -98,17 +101,25 @@ namespace am.kon.packages.services.kafka
         /// <returns>A task representing the asynchronous operation of creating the required Kafka topics.</returns>
         public async Task CreateTopics()
         {
+            var ensureTopics = ResolveEnsureTopics();
+            LogConfiguration(ensureTopics);
+
+            if (ensureTopics.Length == 0)
+            {
+                _logger.LogWarning("EnsureExistTopics is empty. Kafka topic creation skipped.");
+                _topicsCreated = true;
+                return;
+            }
+
             while (!_topicsCreated && !_cancellationToken.IsCancellationRequested)
             {
                 bool topicsCreationError = false;
 
-                foreach (var topicName in _config.EnsureExistTopics)
+                foreach (var topicName in ensureTopics)
                 {
                     try
                     {
-                        var metadata = _adminClient.GetMetadata(topicName, TimeSpan.FromSeconds(5));
-
-                        var topicExists = metadata.Topics.Any(t => t.Topic == topicName && t.Error.Code == ErrorCode.NoError);
+                        var topicExists = TopicExists(topicName);
 
                         // if topic exist continue to next topic
                         if (topicExists)
@@ -126,6 +137,7 @@ namespace am.kon.packages.services.kafka
                                 ReplicationFactor = _config.ReplicationFactorDefault,
                             }
                         });
+                        _logger.LogInformation("Kafka topic created: {TopicName}", topicName);
                     }
                     catch (CreateTopicsException ex)
                     {
@@ -150,14 +162,80 @@ namespace am.kon.packages.services.kafka
                     }
                 }
 
+                if (!topicsCreationError)
+                {
+                    if (!AreTopicsReady(ensureTopics, out var missingTopics))
+                    {
+                        topicsCreationError = true;
+                        _logger.LogWarning(
+                            "Kafka topics not ready yet. Missing: {MissingTopics}",
+                            string.Join(", ", missingTopics));
+                    }
+                }
+
                 if (topicsCreationError)
                 {
+                    _logger.LogWarning("Retrying Kafka topic creation in 3 seconds.");
                     await Task.Delay(3000);
                 }
                 else
                 {
                     _topicsCreated = true;
                 }
+            }
+        }
+
+        private string[] ResolveEnsureTopics()
+        {
+            if (_config.EnsureExistTopics == null || _config.EnsureExistTopics.Length == 0)
+                return Array.Empty<string>();
+
+            return _config.EnsureExistTopics
+                .Where(topic => !string.IsNullOrWhiteSpace(topic))
+                .Select(topic => topic.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        private void LogConfiguration(string[] ensureTopics)
+        {
+            if (Interlocked.CompareExchange(ref _configLogged, 1, 0) != 0)
+                return;
+
+            var topics = ensureTopics.Length == 0 ? "<none>" : string.Join(", ", ensureTopics);
+            _logger.LogInformation(
+                "Kafka topic manager starting. BootstrapServers={BootstrapServers}. EnsureExistTopics={Topics}.",
+                _config.BootstrapServers,
+                topics);
+        }
+
+        private bool AreTopicsReady(string[] ensureTopics, out List<string> missingTopics)
+        {
+            missingTopics = new List<string>();
+            foreach (var topicName in ensureTopics)
+            {
+                if (!TopicExists(topicName))
+                {
+                    missingTopics.Add(topicName);
+                }
+            }
+
+            return missingTopics.Count == 0;
+        }
+
+        private bool TopicExists(string topicName)
+        {
+            try
+            {
+                var metadata = _adminClient.GetMetadata(topicName, TimeSpan.FromSeconds(5));
+                return metadata.Topics.Any(t =>
+                    string.Equals(t.Topic, topicName, StringComparison.OrdinalIgnoreCase) &&
+                    t.Error.Code == ErrorCode.NoError);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to read Kafka metadata for topic {TopicName}.", topicName);
+                return false;
             }
         }
 
