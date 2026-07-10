@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace am.kon.packages.services.kafka.Config
 {
     /// <summary>
-    /// Describes how a missing Kafka topic should be created.
-    /// Existing topics are never altered by the topic manager.
+    /// Describes how a missing Kafka topic should be created and which supported
+    /// configuration values may be reconciled when existing-topic reconciliation is enabled.
     /// </summary>
     public class KafkaTopicCreationConfig
     {

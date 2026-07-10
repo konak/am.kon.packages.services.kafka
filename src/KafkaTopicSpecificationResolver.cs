@@ -10,6 +10,7 @@ namespace am.kon.packages.services.kafka
     internal static class KafkaTopicSpecificationResolver
     {
         private const string MinInSyncReplicasConfigName = "min.insync.replicas";
+        private const string UncleanLeaderElectionConfigName = "unclean.leader.election.enable";
 
         public static TopicSpecification[] Resolve(KafkaTopicManagerConfig config)
         {
@@ -104,7 +105,7 @@ namespace am.kon.packages.services.kafka
             foreach (var entry in NormalizeConfigs(topicConfigs, $"topic '{topicName}' configs"))
                 configs[entry.Key] = entry.Value;
 
-            ValidateMinInSyncReplicas(topicName, replicationFactor, configs);
+            ValidateAndNormalizeDurabilityConfigs(topicName, replicationFactor, configs);
 
             return new TopicSpecification
             {
@@ -142,27 +143,60 @@ namespace am.kon.packages.services.kafka
             return normalized;
         }
 
-        private static void ValidateMinInSyncReplicas(
+        private static void ValidateAndNormalizeDurabilityConfigs(
             string topicName,
             short replicationFactor,
-            IReadOnlyDictionary<string, string> configs)
+            IDictionary<string, string> configs)
         {
-            if (!configs.TryGetValue(MinInSyncReplicasConfigName, out var configuredValue))
-                return;
-
-            if (!int.TryParse(configuredValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var minInSyncReplicas) ||
-                minInSyncReplicas <= 0)
+            if (configs.TryGetValue(MinInSyncReplicasConfigName, out var configuredValue))
             {
-                throw new ArgumentException(
-                    $"Kafka topic '{topicName}' has invalid {MinInSyncReplicasConfigName} value '{configuredValue}'.");
+                if (!int.TryParse(configuredValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var minInSyncReplicas) ||
+                    minInSyncReplicas <= 0)
+                {
+                    throw new ArgumentException(
+                        $"Kafka topic '{topicName}' has invalid {MinInSyncReplicasConfigName} value '{configuredValue}'.");
+                }
+
+                if (minInSyncReplicas > replicationFactor)
+                {
+                    throw new ArgumentException(
+                        $"Kafka topic '{topicName}' has {MinInSyncReplicasConfigName}={minInSyncReplicas}, " +
+                        $"which exceeds replication factor {replicationFactor}.");
+                }
+
+                SetCanonicalConfigValue(
+                    configs,
+                    MinInSyncReplicasConfigName,
+                    minInSyncReplicas.ToString(CultureInfo.InvariantCulture));
             }
 
-            if (minInSyncReplicas > replicationFactor)
+            if (configs.TryGetValue(UncleanLeaderElectionConfigName, out var uncleanLeaderElectionValue))
             {
-                throw new ArgumentException(
-                    $"Kafka topic '{topicName}' has {MinInSyncReplicasConfigName}={minInSyncReplicas}, " +
-                    $"which exceeds replication factor {replicationFactor}.");
+                if (!bool.TryParse(uncleanLeaderElectionValue, out var uncleanLeaderElectionEnabled))
+                {
+                    throw new ArgumentException(
+                        $"Kafka topic '{topicName}' has invalid {UncleanLeaderElectionConfigName} value " +
+                        $"'{uncleanLeaderElectionValue}'.");
+                }
+
+                SetCanonicalConfigValue(
+                    configs,
+                    UncleanLeaderElectionConfigName,
+                    uncleanLeaderElectionEnabled ? "true" : "false");
             }
+        }
+
+        private static void SetCanonicalConfigValue(
+            IDictionary<string, string> configs,
+            string canonicalName,
+            string value)
+        {
+            var existingName = configs.Keys.First(key =>
+                string.Equals(key, canonicalName, StringComparison.OrdinalIgnoreCase));
+            if (!string.Equals(existingName, canonicalName, StringComparison.Ordinal))
+                configs.Remove(existingName);
+
+            configs[canonicalName] = value;
         }
 
         private static string RequireTopicName(string topicName)

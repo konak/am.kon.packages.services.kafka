@@ -207,6 +207,44 @@ public sealed class KafkaTopicSpecificationResolverTests
     }
 
     [Fact]
+    public void Resolve_WhenDurabilityValuesUseNonCanonicalForms_NormalizesThem()
+    {
+        var config = CreateConfig();
+        config.EnsureExistTopics = ["orders.events.v1"];
+        config.TopicConfigsDefault = new Dictionary<string, string>
+        {
+            ["MIN.INSYNC.REPLICAS"] = "+2",
+            ["UNCLEAN.LEADER.ELECTION.ENABLE"] = "False",
+        };
+
+        var topic = Assert.Single(KafkaTopicSpecificationResolver.Resolve(config));
+
+        Assert.Equal("2", topic.Configs!["min.insync.replicas"]);
+        Assert.Equal("false", topic.Configs["unclean.leader.election.enable"]);
+        Assert.Contains("min.insync.replicas", topic.Configs.Keys);
+        Assert.Contains("unclean.leader.election.enable", topic.Configs.Keys);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("enabled")]
+    [InlineData("0")]
+    public void Resolve_WhenUncleanLeaderElectionValueIsInvalid_Throws(string value)
+    {
+        var config = CreateConfig();
+        config.EnsureExistTopics = ["orders.events.v1"];
+        config.TopicConfigsDefault = new Dictionary<string, string>
+        {
+            ["unclean.leader.election.enable"] = value,
+        };
+
+        var exception = Assert.Throws<ArgumentException>(
+            () => KafkaTopicSpecificationResolver.Resolve(config));
+
+        Assert.Contains("invalid unclean.leader.election.enable", exception.Message);
+    }
+
+    [Fact]
     public void Resolve_WhenDetailedSpecificationIsDuplicated_ThrowsDuplicateError()
     {
         var config = CreateConfig();

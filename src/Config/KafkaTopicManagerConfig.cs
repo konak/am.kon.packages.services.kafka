@@ -15,6 +15,12 @@ namespace am.kon.packages.services.kafka.Config
         public short ReplicationFactorDefault { get; set; }
 
         /// <summary>
+        /// Opts into idempotent reconciliation of supported configuration values on existing topics.
+        /// When omitted or false, the manager preserves its legacy creation-only behavior.
+        /// </summary>
+        public bool ReconcileExistingTopicConfigs { get; set; }
+
+        /// <summary>
         /// Optional topic-level configuration applied to every topic created by this manager.
         /// Per-topic values in <see cref="EnsureExistTopicSpecifications"/> take precedence.
         /// </summary>

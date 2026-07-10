@@ -126,6 +126,9 @@ namespace am.kon.packages.services.kafka
                         // if topic exist continue to next topic
                         if (topicExists)
                         {
+                            if (_config.ReconcileExistingTopicConfigs)
+                                await ReconcileExistingTopicConfigs(topicSpecification);
+
                             continue;
                         }
 
@@ -137,6 +140,23 @@ namespace am.kon.packages.services.kafka
                     {
                         if (ex.Results.Any(r => r.Error.Code == ErrorCode.TopicAlreadyExists))
                         {
+                            if (_config.ReconcileExistingTopicConfigs)
+                            {
+                                try
+                                {
+                                    await ReconcileExistingTopicConfigs(topicSpecification);
+                                }
+                                catch (Exception reconciliationException)
+                                {
+                                    _logger.LogError(
+                                        reconciliationException,
+                                        "Failed to reconcile existing Kafka topic configs for {TopicName}.",
+                                        topicName);
+                                    topicsCreationError = true;
+                                    break;
+                                }
+                            }
+
                             continue;
                         }
                         else
@@ -219,6 +239,62 @@ namespace am.kon.packages.services.kafka
                 _logger.LogError(ex, "Failed to read Kafka metadata for topic {TopicName}.", topicName);
                 return false;
             }
+        }
+
+        private async Task ReconcileExistingTopicConfigs(TopicSpecification topicSpecification)
+        {
+            var desiredConfigs = KafkaTopicConfigReconciliationPlanner.ResolveDesiredConfigs(topicSpecification.Configs);
+            if (desiredConfigs.Count == 0)
+                return;
+
+            var metadata = _adminClient.GetMetadata(topicSpecification.Name, TimeSpan.FromSeconds(5));
+            var topicMetadata = metadata.Topics.FirstOrDefault(topic =>
+                string.Equals(topic.Topic, topicSpecification.Name, StringComparison.OrdinalIgnoreCase) &&
+                topic.Error.Code == ErrorCode.NoError);
+            if (topicMetadata == null || topicMetadata.Partitions == null || topicMetadata.Partitions.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    $"Kafka topic '{topicSpecification.Name}' has no readable partition metadata for config reconciliation.");
+            }
+
+            var existingReplicationFactor = topicMetadata.Partitions.Min(partition => partition.Replicas.Count());
+            KafkaTopicConfigReconciliationPlanner.ValidateExistingReplicationFactor(
+                topicSpecification.Name,
+                desiredConfigs,
+                existingReplicationFactor);
+
+            var resource = new ConfigResource
+            {
+                Type = ResourceType.Topic,
+                Name = topicSpecification.Name,
+            };
+            var describeResults = await _adminClient.DescribeConfigsAsync(new[] { resource });
+            var describeResult = describeResults.SingleOrDefault(result =>
+                string.Equals(result.ConfigResource.Name, topicSpecification.Name, StringComparison.OrdinalIgnoreCase));
+            if (describeResult == null)
+                throw new InvalidOperationException($"Kafka returned no config metadata for topic '{topicSpecification.Name}'.");
+
+            var currentConfigs = describeResult.Entries.ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value.Value,
+                StringComparer.OrdinalIgnoreCase);
+            var alterations = KafkaTopicConfigReconciliationPlanner.ResolveAlterations(desiredConfigs, currentConfigs);
+            if (alterations.Count == 0)
+            {
+                _logger.LogDebug("Kafka topic configs already match for {TopicName}.", topicSpecification.Name);
+                return;
+            }
+
+            await _adminClient.IncrementalAlterConfigsAsync(
+                new Dictionary<ConfigResource, List<ConfigEntry>>
+                {
+                    [resource] = alterations,
+                });
+
+            _logger.LogInformation(
+                "Kafka topic configs reconciled: TopicName={TopicName}, Configs={Configs}.",
+                topicSpecification.Name,
+                string.Join(", ", alterations.Select(entry => $"{entry.Name}={entry.Value}")));
         }
 
         /// <summary>

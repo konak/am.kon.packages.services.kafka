@@ -54,6 +54,7 @@ Configure your Kafka services in '**appsettings.json**' as follows:
     "EnsureExistTopics": ["orders.events.v1"],
     "NumPartitionsDefault": 3,
     "ReplicationFactorDefault": 3,
+    "ReconcileExistingTopicConfigs": true,
     "TopicConfigsDefault": {
       "min.insync.replicas": "2",
       "unclean.leader.election.enable": "false"
@@ -104,9 +105,16 @@ These sections define the settings for your Kafka producer and consumer, includi
 
 `EnsureExistTopicSpecifications` is an optional richer contract for topics that need their own partition count, replication factor, or Kafka topic configs. Omitted per-topic partition and replication values fall back to the section defaults. Per-topic `Configs` override matching `TopicConfigsDefault` entries. A detailed specification with the same name as a legacy string entry replaces that legacy definition, which supports an incremental configuration migration without creating the topic twice.
 
-The manager validates topic definitions before contacting Kafka. Partition count and replication factor must be positive, `min.insync.replicas` must be a positive integer no greater than the resolved replication factor, and duplicate or conflicting detailed specifications are rejected.
+The manager validates topic definitions before contacting Kafka. Partition count and replication factor must be positive, `min.insync.replicas` must be a positive integer no greater than the resolved replication factor, `unclean.leader.election.enable` must be a boolean, and duplicate or conflicting detailed specifications are rejected.
 
-The topic manager creates missing topics only. It deliberately does not change partition count, replica assignments, or topic configs on existing topics; those operations require a separately reviewed Kafka migration.
+`ReconcileExistingTopicConfigs` is optional and defaults to `false`, preserving the legacy creation-only behavior. When enabled, the manager describes each existing topic, compares only the supported durability settings, and uses Kafka's incremental alter-config API with `SET` operations only for drifted values. Repeated startup with matching values performs no alteration.
+
+Existing-topic reconciliation currently supports only:
+
+- `min.insync.replicas`
+- `unclean.leader.election.enable`
+
+Other entries, such as `cleanup.policy`, still apply when a topic is created but are not changed on an existing topic. Before reconciling `min.insync.replicas`, the manager validates it against the existing topic's live replication factor. It never increases partitions or changes replica assignments. Enabling reconciliation requires Kafka describe-config and incremental-alter-config permissions. Disabling it later stops future reconciliation but does not roll back dynamic topic values already applied.
 
 ## Implementing Services
 ### KafkaDataProducerService
