@@ -101,7 +101,8 @@ namespace am.kon.packages.services.kafka
         /// <returns>A task representing the asynchronous operation of creating the required Kafka topics.</returns>
         public async Task CreateTopics()
         {
-            var ensureTopics = ResolveEnsureTopics();
+            var topicSpecifications = KafkaTopicSpecificationResolver.Resolve(_config);
+            var ensureTopics = topicSpecifications.Select(topic => topic.Name).ToArray();
             LogConfiguration(ensureTopics);
 
             if (ensureTopics.Length == 0)
@@ -115,8 +116,9 @@ namespace am.kon.packages.services.kafka
             {
                 bool topicsCreationError = false;
 
-                foreach (var topicName in ensureTopics)
+                foreach (var topicSpecification in topicSpecifications)
                 {
+                    var topicName = topicSpecification.Name;
                     try
                     {
                         var topicExists = TopicExists(topicName);
@@ -128,15 +130,7 @@ namespace am.kon.packages.services.kafka
                         }
 
                         // crete topic
-                        await _adminClient.CreateTopicsAsync(new[]
-                        {
-                            new TopicSpecification
-                            {
-                                Name = topicName,
-                                NumPartitions = _config.NumPartitionsDefault,
-                                ReplicationFactor = _config.ReplicationFactorDefault,
-                            }
-                        });
+                        await _adminClient.CreateTopicsAsync(new[] { topicSpecification });
                         _logger.LogInformation("Kafka topic created: {TopicName}", topicName);
                     }
                     catch (CreateTopicsException ex)
@@ -183,18 +177,6 @@ namespace am.kon.packages.services.kafka
                     _topicsCreated = true;
                 }
             }
-        }
-
-        private string[] ResolveEnsureTopics()
-        {
-            if (_config.EnsureExistTopics == null || _config.EnsureExistTopics.Length == 0)
-                return Array.Empty<string>();
-
-            return _config.EnsureExistTopics
-                .Where(topic => !string.IsNullOrWhiteSpace(topic))
-                .Select(topic => topic.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
         }
 
         private void LogConfiguration(string[] ensureTopics)
@@ -244,12 +226,12 @@ namespace am.kon.packages.services.kafka
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
-            if(!disposing)
+            if (!disposing)
                 return;
 
             int originalValue = Interlocked.CompareExchange(ref _disposed, 1, 0);
 
-            if(originalValue != 0)
+            if (originalValue != 0)
                 return;
 
             _adminClient?.Dispose();

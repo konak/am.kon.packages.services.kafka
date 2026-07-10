@@ -48,6 +48,26 @@ Configure your Kafka services in '**appsettings.json**' as follows:
     "MakeGroupUnique": false,
     "AutoCommit": true,
     "Topics": ["topic1", "topic2"]
+  },
+  "KafkaTopicManager": {
+    "BootstrapServers": "localhost:9092",
+    "EnsureExistTopics": ["orders.events.v1"],
+    "NumPartitionsDefault": 3,
+    "ReplicationFactorDefault": 3,
+    "TopicConfigsDefault": {
+      "min.insync.replicas": "2",
+      "unclean.leader.election.enable": "false"
+    },
+    "EnsureExistTopicSpecifications": [
+      {
+        "Name": "orders.compacted.v1",
+        "NumPartitions": 6,
+        "ReplicationFactor": 3,
+        "Configs": {
+          "cleanup.policy": "compact"
+        }
+      }
+    ]
   }
 }
 ```
@@ -77,6 +97,16 @@ These sections define the settings for your Kafka producer and consumer, includi
 + **MakeGroupUnique**: When set to true, appends a unique identifier (timestamp) to the GroupId, creating a unique consumer group on every run.
 + **AutoCommit**: If set to true, the consumer's offset will be periodically committed in the background.
 + **Topics**: An array of topics this consumer should subscribe to.
+
+### Kafka topic creation
+
+`KafkaTopicManager` preserves the legacy `EnsureExistTopics` string-array contract. Missing legacy topics use `NumPartitionsDefault`, `ReplicationFactorDefault`, and the optional `TopicConfigsDefault` values.
+
+`EnsureExistTopicSpecifications` is an optional richer contract for topics that need their own partition count, replication factor, or Kafka topic configs. Omitted per-topic partition and replication values fall back to the section defaults. Per-topic `Configs` override matching `TopicConfigsDefault` entries. A detailed specification with the same name as a legacy string entry replaces that legacy definition, which supports an incremental configuration migration without creating the topic twice.
+
+The manager validates topic definitions before contacting Kafka. Partition count and replication factor must be positive, `min.insync.replicas` must be a positive integer no greater than the resolved replication factor, and duplicate or conflicting detailed specifications are rejected.
+
+The topic manager creates missing topics only. It deliberately does not change partition count, replica assignments, or topic configs on existing topics; those operations require a separately reviewed Kafka migration.
 
 ## Implementing Services
 ### KafkaDataProducerService

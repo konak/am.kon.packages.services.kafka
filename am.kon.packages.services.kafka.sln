@@ -7,24 +7,53 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{23EFA5E4-F71
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "am.kon.packages.services.kafka", "src\am.kon.packages.services.kafka.csproj", "{F838B919-D6E9-42ED-8DA4-C356792E21B0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "am.kon.packages.services.kafka.tests", "tests\am.kon.packages.services.kafka.tests\am.kon.packages.services.kafka.tests.csproj", "{C20BD141-FF44-4C82-810E-F97DF74C1C0C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Debug|x64.Build.0 = Debug|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Debug|x86.Build.0 = Debug|Any CPU
 		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Release|x64.ActiveCfg = Release|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Release|x64.Build.0 = Release|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Release|x86.ActiveCfg = Release|Any CPU
+		{F838B919-D6E9-42ED-8DA4-C356792E21B0}.Release|x86.Build.0 = Release|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Debug|x64.Build.0 = Debug|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Debug|x86.Build.0 = Debug|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Release|x64.ActiveCfg = Release|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Release|x64.Build.0 = Release|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Release|x86.ActiveCfg = Release|Any CPU
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {942E1E50-5BBA-4D6D-899A-F54F4AC831A9}
-	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F838B919-D6E9-42ED-8DA4-C356792E21B0} = {23EFA5E4-F71A-42AE-9150-1CBACC4F9519}
+		{C20BD141-FF44-4C82-810E-F97DF74C1C0C} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {942E1E50-5BBA-4D6D-899A-F54F4AC831A9}
 	EndGlobalSection
 EndGlobal
