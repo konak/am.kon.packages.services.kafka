@@ -38,7 +38,10 @@ Configure your Kafka services in '**appsettings.json**' as follows:
     "RequestTimeoutMs": 5000,
     "SocketTimeoutMs": 60000,
     "CompressionType": "gzip",
-    "CompressionLevel": 5
+    "CompressionLevel": 5,
+    "Acks": "all",
+    "EnableIdempotence": true,
+    "MaxInFlight": 5
   },
   "KafkaConsumerConfig": {
     "BootstrapServers": "localhost:9092",
@@ -67,6 +70,11 @@ These sections define the settings for your Kafka producer and consumer, includi
 + **SocketKeepaliveEnable**: Enables TCP keep-alive on the socket connecting to the Kafka broker. It keeps the connection active even if no data is being transferred.
 + **CompressionType**: Specifies the compression codec to use for compressing message sets. Common values are none, gzip, snappy, and lz4.
 + **CompressionLevel**: Represents the compression level for compressed messages. The higher the level, the better the compression.
++ **Acks**: Configures the required Kafka acknowledgements. Use `all` for durable delivery.
++ **EnableIdempotence**: Enables producer idempotence so retries do not create duplicate records within a producer session.
++ **MaxInFlight**: Limits concurrent in-flight requests per broker connection. Keep this at five or lower when idempotence is enabled.
+
+`Acks`, `EnableIdempotence`, and `MaxInFlight` are opt-in for backward compatibility. When they are omitted, the package leaves the underlying Confluent.Kafka defaults unchanged. For durable publication, configure all three values as shown above.
 
 ### KafkaConsumerConfig Properties
 
