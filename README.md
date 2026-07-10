@@ -50,6 +50,7 @@ Configure your Kafka services in '**appsettings.json**' as follows:
     "GroupId": "my-consumer-group",
     "MakeGroupUnique": false,
     "AutoCommit": true,
+    "AutoOffsetReset": "Error",
     "Topics": ["topic1", "topic2"]
   }
 }
@@ -84,6 +85,7 @@ These sections define the settings for your Kafka producer and consumer, includi
 + **GroupId**: The name of the consumer group this consumer belongs to. Consumer groups allow a group of consumers to cooperate in consuming the messages.
 + **MakeGroupUnique**: When set to true, appends a unique identifier (timestamp) to the GroupId, creating a unique consumer group on every run.
 + **AutoCommit**: If set to true, the consumer's offset will be periodically committed in the background.
++ **AutoOffsetReset**: Optional Confluent.Kafka policy (`Earliest`, `Latest`, or `Error`) used when no initial offset exists or the committed offset is unavailable. Omit it to preserve the existing client default. Archival consumers should prefer `Error` so retention loss fails visibly instead of silently skipping data.
 + **Topics**: An array of topics this consumer should subscribe to.
 
 ## Implementing Services
