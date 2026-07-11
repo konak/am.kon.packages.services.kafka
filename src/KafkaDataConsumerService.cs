@@ -35,9 +35,25 @@ namespace am.kon.packages.services.kafka
 
         private readonly KafkaTopicManagerService _kafkaTopicManagerService;
 
+        private Action _autoOffsetResetErrorHandler;
+
         protected int _disposed;
 
         protected Func<Message<TKey, TValue>, Task<bool>> ProcessMessageAsync { get; set; }
+
+        /// <summary>
+        /// Sets the callback invoked when Confluent.Kafka reports that the configured
+        /// offset reset policy cannot resolve an unavailable committed offset.
+        /// A subsequent call replaces the previous callback; passing <c>null</c> disables it.
+        /// </summary>
+        /// <param name="handler">
+        /// Synchronous, non-blocking callback invoked once for each
+        /// <see cref="ErrorCode.Local_AutoOffsetReset"/> consume error.
+        /// </param>
+        protected void SetAutoOffsetResetErrorHandler(Action handler)
+        {
+            _autoOffsetResetErrorHandler = handler;
+        }
 
         public KafkaDataConsumerService(
             ILogger<KafkaDataConsumerService<TKey, TValue>> logger,
@@ -135,7 +151,7 @@ namespace am.kon.packages.services.kafka
                         // if AutoCommit is enabled there is no need to coll _consumer.Commit
                         bool commitConsume = !_kafkaConsumerConfig.AutoCommit;
 
-                        if(ProcessMessageAsync == null)
+                        if (ProcessMessageAsync == null)
                         {
                             _messagesQueue.Enqueue(consumeResult.Message);
                             Interlocked.Increment(ref _messagesQueueLength);
@@ -158,6 +174,7 @@ namespace am.kon.packages.services.kafka
                     }
                     catch (Exception ex)
                     {
+                        NotifyAutoOffsetResetError(ex);
                         _logger.LogError(ex, $"Consume error. ClientID: {_consumer.Name}");
                     }
                 }
@@ -169,6 +186,27 @@ namespace am.kon.packages.services.kafka
             finally
             {
                 Interlocked.Exchange(ref _consumingIsInProgress, 0);
+            }
+        }
+
+        private void NotifyAutoOffsetResetError(Exception exception)
+        {
+            if (!KafkaConsumeExceptionClassifier.IsAutoOffsetResetError(exception))
+                return;
+
+            Action handler = _autoOffsetResetErrorHandler;
+            if (handler == null)
+                return;
+
+            try
+            {
+                handler();
+            }
+            catch (Exception callbackException)
+            {
+                _logger.LogWarning(
+                    callbackException,
+                    "Kafka auto-offset-reset error telemetry callback failed.");
             }
         }
 
@@ -199,12 +237,12 @@ namespace am.kon.packages.services.kafka
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
-            if(!disposing)
+            if (!disposing)
                 return;
 
             int originalValue = Interlocked.CompareExchange(ref _disposed, 1, 0);
 
-            if(originalValue != 0)
+            if (originalValue != 0)
                 return;
 
             _consumer?.Dispose();
@@ -222,4 +260,3 @@ namespace am.kon.packages.services.kafka
         }
     }
 }
-

@@ -38,7 +38,10 @@ Configure your Kafka services in '**appsettings.json**' as follows:
     "RequestTimeoutMs": 5000,
     "SocketTimeoutMs": 60000,
     "CompressionType": "gzip",
-    "CompressionLevel": 5
+    "CompressionLevel": 5,
+    "Acks": "all",
+    "EnableIdempotence": true,
+    "MaxInFlight": 5
   },
   "KafkaConsumerConfig": {
     "BootstrapServers": "localhost:9092",
@@ -47,7 +50,29 @@ Configure your Kafka services in '**appsettings.json**' as follows:
     "GroupId": "my-consumer-group",
     "MakeGroupUnique": false,
     "AutoCommit": true,
+    "AutoOffsetReset": "Error",
     "Topics": ["topic1", "topic2"]
+  },
+  "KafkaTopicManager": {
+    "BootstrapServers": "localhost:9092",
+    "EnsureExistTopics": ["orders.events.v1"],
+    "NumPartitionsDefault": 3,
+    "ReplicationFactorDefault": 3,
+    "ReconcileExistingTopicConfigs": true,
+    "TopicConfigsDefault": {
+      "min.insync.replicas": "2",
+      "unclean.leader.election.enable": "false"
+    },
+    "EnsureExistTopicSpecifications": [
+      {
+        "Name": "orders.compacted.v1",
+        "NumPartitions": 6,
+        "ReplicationFactor": 3,
+        "Configs": {
+          "cleanup.policy": "compact"
+        }
+      }
+    ]
   }
 }
 ```
@@ -67,6 +92,11 @@ These sections define the settings for your Kafka producer and consumer, includi
 + **SocketKeepaliveEnable**: Enables TCP keep-alive on the socket connecting to the Kafka broker. It keeps the connection active even if no data is being transferred.
 + **CompressionType**: Specifies the compression codec to use for compressing message sets. Common values are none, gzip, snappy, and lz4.
 + **CompressionLevel**: Represents the compression level for compressed messages. The higher the level, the better the compression.
++ **Acks**: Configures the required Kafka acknowledgements. Use `all` for durable delivery.
++ **EnableIdempotence**: Enables producer idempotence so retries do not create duplicate records within a producer session.
++ **MaxInFlight**: Limits concurrent in-flight requests per broker connection. Keep this at five or lower when idempotence is enabled.
+
+`Acks`, `EnableIdempotence`, and `MaxInFlight` are opt-in for backward compatibility. When they are omitted, the package leaves the underlying Confluent.Kafka defaults unchanged. For durable publication, configure all three values as shown above.
 
 ### KafkaConsumerConfig Properties
 
@@ -76,7 +106,25 @@ These sections define the settings for your Kafka producer and consumer, includi
 + **GroupId**: The name of the consumer group this consumer belongs to. Consumer groups allow a group of consumers to cooperate in consuming the messages.
 + **MakeGroupUnique**: When set to true, appends a unique identifier (timestamp) to the GroupId, creating a unique consumer group on every run.
 + **AutoCommit**: If set to true, the consumer's offset will be periodically committed in the background.
++ **AutoOffsetReset**: Optional Confluent.Kafka policy (`Earliest`, `Latest`, or `Error`) used when no initial offset exists or the committed offset is unavailable. Omit it to preserve the existing client default. Archival consumers should prefer `Error` so retention loss fails visibly instead of silently skipping data.
 + **Topics**: An array of topics this consumer should subscribe to.
+
+### Kafka topic creation
+
+`KafkaTopicManager` preserves the legacy `EnsureExistTopics` string-array contract. Missing legacy topics use `NumPartitionsDefault`, `ReplicationFactorDefault`, and the optional `TopicConfigsDefault` values.
+
+`EnsureExistTopicSpecifications` is an optional richer contract for topics that need their own partition count, replication factor, or Kafka topic configs. Omitted per-topic partition and replication values fall back to the section defaults. Per-topic `Configs` override matching `TopicConfigsDefault` entries. A detailed specification with the same name as a legacy string entry replaces that legacy definition, which supports an incremental configuration migration without creating the topic twice.
+
+The manager validates topic definitions before contacting Kafka. Partition count and replication factor must be positive, `min.insync.replicas` must be a positive integer no greater than the resolved replication factor, `unclean.leader.election.enable` must be a boolean, and duplicate or conflicting detailed specifications are rejected.
+
+`ReconcileExistingTopicConfigs` is optional and defaults to `false`, preserving the legacy creation-only behavior. When enabled, the manager describes each existing topic, compares only the supported durability settings, and uses Kafka's incremental alter-config API with `SET` operations only for drifted values. Repeated startup with matching values performs no alteration.
+
+Existing-topic reconciliation currently supports only:
+
+- `min.insync.replicas`
+- `unclean.leader.election.enable`
+
+Other entries, such as `cleanup.policy`, still apply when a topic is created but are not changed on an existing topic. Before reconciling `min.insync.replicas`, the manager validates it against the existing topic's live replication factor. It never increases partitions or changes replica assignments. Enabling reconciliation requires Kafka describe-config and incremental-alter-config permissions. Disabling it later stops future reconciliation but does not roll back dynamic topic values already applied.
 
 ## Implementing Services
 ### KafkaDataProducerService

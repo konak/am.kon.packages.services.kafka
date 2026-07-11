@@ -19,15 +19,15 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8
+        dotnet-version: 10.0.x
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore --configuration Release
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --configuration Release --verbosity normal
     - name: Pack
-      run: dotnet pack --output ./packages --no-build --no-restore
+      run: dotnet pack --output ./packages --no-build --no-restore --configuration Release
     - name: Push
       env:
         api_secret: ${{ secrets.NUGET_PUBLISH_SECRET }}
