@@ -1,4 +1,5 @@
 ﻿using System;
+using Confluent.Kafka;
 namespace am.kon.packages.services.kafka.Config
 {
     /// <summary>
@@ -40,6 +41,13 @@ namespace am.kon.packages.services.kafka.Config
         /// Autocommit acnowledgement of Kafka message consuming
         /// </summary>
         public bool AutoCommit { get; set; }
+
+        /// <summary>
+        /// Defines how the consumer behaves when there is no initial offset or
+        /// the committed offset is no longer available on the broker.
+        /// When omitted, the underlying Confluent.Kafka default is preserved.
+        /// </summary>
+        public AutoOffsetReset? AutoOffsetReset { get; set; }
 
         /// <summary>
         /// Name of topics to subscribe to
