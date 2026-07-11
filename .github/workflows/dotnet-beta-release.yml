@@ -25,9 +25,9 @@ jobs:
     - name: Build
       run: dotnet build --no-restore --configuration Release
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --configuration Release --verbosity normal
     - name: Pack
-      run: dotnet pack --output ./packages --no-build --no-restore
+      run: dotnet pack --output ./packages --no-build --no-restore --configuration Release
     - name: Push
       env:
         api_secret: ${{ secrets.NUGET_PUBLISH_SECRET }}
