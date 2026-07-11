@@ -58,9 +58,26 @@ namespace am.kon.packages.services.kafka.Config
         public int CompressionLevel { get; set; }
 
         /// <summary>
+        /// Number of acknowledgements required from Kafka before a produce request succeeds.
+        /// Leave unset to preserve the underlying client default.
+        /// </summary>
+        public string Acks { get; set; }
+
+        /// <summary>
+        /// Enables the idempotent Kafka producer. Leave unset to preserve the underlying client default.
+        /// </summary>
+        public bool? EnableIdempotence { get; set; }
+
+        /// <summary>
+        /// Maximum number of in-flight requests per broker connection.
+        /// When idempotence is enabled, this value must be no greater than five.
+        /// Leave unset to preserve the underlying client default.
+        /// </summary>
+        public int? MaxInFlight { get; set; }
+
+        /// <summary>
         /// Indicates whether to wait for the Topic Manager initialization process before sending messages.
         /// </summary>
         public bool AwaitForTopicManager { get; set; }
     }
 }
-
