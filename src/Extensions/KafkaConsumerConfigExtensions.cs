@@ -22,11 +22,11 @@ namespace am.kon.packages.services.kafka.Extensions
                 MessageMaxBytes = kafkaConsumerConfig.MessageMaxBytes,
                 SocketTimeoutMs = kafkaConsumerConfig.SocketTimeoutMs,
                 GroupId = kafkaConsumerConfig.GroupId,
-                EnableAutoCommit = kafkaConsumerConfig.AutoCommit
+                EnableAutoCommit = kafkaConsumerConfig.AutoCommit,
+                AutoOffsetReset = kafkaConsumerConfig.AutoOffsetReset
             };
 
             return res;
         }
     }
 }
-
